@@ -1,5 +1,16 @@
 import random
 import socket
+import thread
+
+def on_new_client(clientsocket,addr):
+        while True:
+            msg = clientsocket.recv(1024) 
+            #do some checks and if msg == someWeirdSignal: break:
+            print addr, ' >> ', msg
+            msg = raw_input('SERVER >> ') 
+            #Maybe some code to compute the last digit of PI, play game or anything else can go here and when you are done.
+            clientsocket.send(msg) 
+        clientsocket.close()
 
 class Game:
 
@@ -273,4 +284,33 @@ class Player:
 
 
 if __name__ == '__main__':
-	game = Game()
+	print "Welcome to Dominion!"
+	print "Create a lobby(create) or join a lobby(join <ip address>)"
+	while True:
+		st = raw_input()
+		if st == 'create':
+			s = socket.socket()         # Create a socket object
+			host = socket.gethostname() # Get local machine name
+			port = 50000                # Reserve a port for your service.
+
+			print 'Server started!'
+			print 'Waiting for clients...'
+
+			s.bind((host, port))        # Bind to the port
+			s.listen(5)                 # Now wait for client connection.
+			while True:
+				c, addr = s.accept()     # Establish connection with client.
+				print 'Got connection from', addr
+				thread.start_new_thread(on_new_client,(c,addr))
+			s.close()
+		elif st.split(" ")[0] == 'join':
+			s = socket.socket()
+			host = socket.gethostname()
+			port = 50000
+			s.connect((host, port))
+		else:
+			print "Invalid Input"
+			print st
+			print st == 'create'
+			print type(st)
+			print len(st)
