@@ -43,6 +43,72 @@ class Game:
 				"Artisan": 6
 		}
 
+		self.actions = [
+				"Cellar",
+				"Chapel",
+				"Moat",
+				"Harbinger",
+				"Merchant",
+				"Vassal",
+				"Village",
+				"Workshop",
+				"Bureaucrat",
+				"Militia",
+				"Moneylender",
+				"Poacher",
+				"Remodel",
+				"Smithy",
+				"Throne Room",
+				"Bandit",
+				"Council Room",
+				"Festival",
+				"Laboratory",
+				"Library",
+				"Market",
+				"Mine",
+				"Sentry",
+				"Witch",
+				"Artisan"
+		]
+
+		self.attacks = [
+				"Bureaucrat",
+				"Militia",
+				"Bandit",
+				"Witch"
+		]
+
+		self.treasure = [
+				"Copper"
+				"Silver"
+				"Gold"
+		]
+
+		self.victory = {
+				"Estate": 1,
+				"Duchy": 3,
+				"Province": 6,
+				"Curse": -1
+		}
+
+		self.board = {
+
+		}
+
+		temp = self.actions + ["Gardens"]
+		random.shuffle(temp)
+		for card in temp[:10]:
+			self.board[card] = 10
+			#TODO number of cards is a function of players
+		self.board["Copper"] =
+		self.board["Silver"] =
+		self.board["Gold"] =
+		self.board["Curse"] =
+		self.board["Estate"] = 
+		self.board["Duchy"] =
+		self.board["Province"] =
+
+
 
 		p1 = Player("Awesome Andrew", self)
 		p2 = Player("Retard Rebecca", self)
@@ -59,6 +125,9 @@ class Player:
 		self.discard = []
 		self.hand = []
 		self.played = []
+		self.action_count = 1
+		self.buy_count = 1
+		self.coin_count = 1
 
 		random.shuffle(self.deck)
 		self.draw(5)
@@ -94,7 +163,8 @@ class Player:
 			self.add_action(1)
 			self.discard()
 		elif card is "Chapel":
-			self.game.trash()
+			self.game.trash.append()
+			#ask player which card to trash
 		elif card is "Moat":
 			self.draw(2)
 		elif card is "Harbinger":
@@ -109,7 +179,7 @@ class Player:
 		elif card is "Vassal":
 			self.add_coin(2)
 			self.discard.append(self.deck.pop())
-			if self.discard[-1] is in self.game.actions:
+			if self.discard[-1] in self.game.actions:
 				pass
 				#ask player if they want to play or not
 		elif card is "Village":
@@ -122,12 +192,16 @@ class Player:
 			for player in self.game.players:
 				if player is not self:
 					#ask players which victory card to show
+					pass
 		elif card is "Gardens":
 			pass
 		elif card is "Militia":
 			self.add_coin(2)
 		elif card is "Moneylender":
-			pass
+			try:
+				self.hand.remove(self.hand.index("Copper"))
+				self.game.trash.append("Copper")
+				self.add_coin(3);
 		elif card is "Poacher":
 			self.draw(1)
 			self.add_action(1)
@@ -140,6 +214,7 @@ class Player:
 			pass
 		elif card is "Bandit":
 			self.discard.append("Gold")
+			self.board["Gold"] -= 1
 			for player in self.game.players:
 				if player is not self:
 					for i in range(2):
@@ -151,6 +226,9 @@ class Player:
 		elif card is "Council Room":
 			self.draw(4)
 			self.add_buy(1)
+			for player in self.game.players:
+				if players is not self:
+					player.draw(1)
 		elif card is "Festival":
 			self.add_action(2)
 			self.add_buy(1)
@@ -159,7 +237,11 @@ class Player:
 			self.draw(2)
 			self.add_action(1)
 		elif card is "Library":
-			pass
+			while len(self.hand) is not 7:
+				self.draw(1)
+				if self.hand[-1] in self.game.actions:
+					#prompt to discard action card
+					self.discard.append(self.hand.pop())
 		elif card is "Market":
 			self.draw(1)
 			self.add_action(1)
@@ -172,9 +254,22 @@ class Player:
 			self.add_action(1)
 		elif card is "Witch":
 			self.draw(2)
+			for player in self.game.players:
+				if player is not self:
+					player.discard.append("Curse")
 		elif card is "Artisan":
 			pass
 		self.played.append(card)
+
+	def buy(self, card):
+		if self.buy_count > 0:
+			self.coin_count += self.hand.count("Copper") + self.hand.count("Silver")*2 + self.hand.count("Gold")*3
+			if self.coin_count >= self.game.card_cost[card] and self.game.board[card] is not 0:
+				self.game.board[card] -= 1
+				self.discard.append(card)
+				self.coin_count -= self.game.card_cost[card]
+				self.buy_count -= 1
+
 
 
 if __name__ == '__main__':
