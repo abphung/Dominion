@@ -1,16 +1,7 @@
 import random
 import socket
 import thread
-
-def on_new_client(clientsocket,addr):
-        while True:
-            msg = clientsocket.recv(1024) 
-            #do some checks and if msg == someWeirdSignal: break:
-            print addr, ' >> ', msg
-            msg = raw_input('SERVER >> ') 
-            #Maybe some code to compute the last digit of PI, play game or anything else can go here and when you are done.
-            clientsocket.send(msg) 
-        clientsocket.close()
+import threading
 
 class Game:
 
@@ -102,29 +93,103 @@ class Game:
 				"Curse": -1
 		}
 
-		self.board = {
+		self.player_client_pairing = {}
 
-		}
-
+		self.board = {}
 		temp = self.actions + ["Gardens"]
 		random.shuffle(temp)
 		for card in temp[:10]:
 			self.board[card] = 10
 			#TODO number of cards is a function of players
-		self.board["Copper"] =
-		self.board["Silver"] =
-		self.board["Gold"] =
-		self.board["Curse"] =
-		self.board["Estate"] = 
-		self.board["Duchy"] =
-		self.board["Province"] =
+		self.board["Copper"] = 20
+		self.board["Silver"] = 20
+		self.board["Gold"] = 20
+		self.board["Curse"] = 20
+		self.board["Estate"] = 20
+		self.board["Duchy"] = 20
+		self.board["Province"] = 20
 
+		print "Welcome to Dominion!"
+		print "Create a lobby(create) or join a lobby(join <ip address>)"
+		while True:
+			try:
+				print ">>>",
+				st = raw_input()
+				if st == 'create':
+					s = socket.socket()         # Create a socket object
+					host = socket.gethostname() # Get local machine name
+					port = 50000                # Reserve a port for your service.
 
+					print 'Server started!'
+					print 'Waiting for clients...'
 
-		p1 = Player("Awesome Andrew", self)
-		p2 = Player("Retard Rebecca", self)
-		print p1.hand
-		print p2.hand
+					s.bind((host, port))        # Bind to the port
+					s.listen(5)                 # Now wait for client connection.
+					while True:
+						c, addr = s.accept()     # Establish connection with client.
+						print 'Got connection from', addr
+						thread.start_new_thread(self.on_new_client, (c, addr))
+					cur_index = 0
+					while True:
+						#start of turn
+						for i, player in enumerate(self.players):
+							if i != cur_index:
+								self.player_client_pairing[player].send(self.player[i].name + "'s Turn")
+							else:
+								self.player_client_pairing[player].send('Your Turn')
+						#echo and process what was said
+						recv = s.recc(1024)
+						print recv
+						#handle commands
+
+						cur_index = (cur_index + 1)%len(self.players)
+					s.close()
+				elif st.split(" ")[0] == 'join':
+					s = socket.socket()
+					host = socket.gethostname()
+					port = 50000
+					s.connect((host, port))
+					#client code
+					print "What's your name?"
+					print ">>>",
+					st = raw_input()
+					s.send(st)
+					print "Waiting for the game to start(start)"
+					recv = s.recv(1024)
+					print recv
+					while True:
+						recv = s.recv(1024)
+						print recv
+						if recv == 'Your Turn':
+							print ">>>",
+							s.send(raw_input())
+				else:
+					print "Invalid Input"
+					print st
+					print st == 'create'
+					print type(st)
+					print len(st)
+			except KeyboardInterrupt:
+				for player in self.players:
+					self.player_client_pairing[player].close()
+				s.close()
+
+				exit()
+
+	def on_new_client(self, clientsocket, addr):
+		#server code
+		name = clientsocket.recv(1024)
+		player = Player(name, self)
+		self.player_client_pairing[player] = clientsocket
+		for player in self.players:
+			print name + " joined the game"
+			self.player_client_pairing[player].send(name + " joined the game")
+		while True:
+			recv = clientsocket.recv(1024)
+			print recv
+			for player in self.players:
+				self.player_client_pairing[player].send(recv) 
+		clientsocket.close()
 
 class Player:
 
@@ -212,7 +277,9 @@ class Player:
 			try:
 				self.hand.remove(self.hand.index("Copper"))
 				self.game.trash.append("Copper")
-				self.add_coin(3);
+				self.add_coin(3)
+			except:
+				pass
 		elif card is "Poacher":
 			self.draw(1)
 			self.add_action(1)
@@ -284,33 +351,4 @@ class Player:
 
 
 if __name__ == '__main__':
-	print "Welcome to Dominion!"
-	print "Create a lobby(create) or join a lobby(join <ip address>)"
-	while True:
-		st = raw_input()
-		if st == 'create':
-			s = socket.socket()         # Create a socket object
-			host = socket.gethostname() # Get local machine name
-			port = 50000                # Reserve a port for your service.
-
-			print 'Server started!'
-			print 'Waiting for clients...'
-
-			s.bind((host, port))        # Bind to the port
-			s.listen(5)                 # Now wait for client connection.
-			while True:
-				c, addr = s.accept()     # Establish connection with client.
-				print 'Got connection from', addr
-				thread.start_new_thread(on_new_client,(c,addr))
-			s.close()
-		elif st.split(" ")[0] == 'join':
-			s = socket.socket()
-			host = socket.gethostname()
-			port = 50000
-			s.connect((host, port))
-		else:
-			print "Invalid Input"
-			print st
-			print st == 'create'
-			print type(st)
-			print len(st)
+	game = Game()
